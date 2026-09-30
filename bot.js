@@ -50,7 +50,8 @@ const NetherSurvivalEngine = require('./src/modules/nether_survival');
 const BardEngine = require('./src/modules/bard');
 
 const CONFIG = {
-  host: 'FAMILIA-adrC.aternos.me',
+  host: 'venomcelneo.aternos.me',
+  port: 31457,
   version: '1.21',
   botCount: 2,
   baseName: 'lcf_',
@@ -232,6 +233,7 @@ function createBotInstance(id) {
 
   const bot = mineflayer.createBot({
     host: CONFIG.host,
+    port: CONFIG.port,
     username: username,
     version: CONFIG.version,
     auth: 'offline',
