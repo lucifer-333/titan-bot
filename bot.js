@@ -809,7 +809,7 @@ function createBotInstance(id) {
 
 console.log(`[***] Colossus v6.0 (32 Modüllü) Titan Bot Sistemi Hazır.`);
 
-if (process.argv.includes('--start')) {
+if (process.argv.includes('--start') || require.main === module) {
   const dashboard = new WebDashboard(activeBots, CONFIG);
   dashboard.start(3000);
 
