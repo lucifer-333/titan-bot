@@ -2,6 +2,8 @@
  * Architectural & Construction Engine for Mineflayer
  * Builds emergency dirt bunkers, nerd poles to escape mobs, and bridges across gaps.
  */
+const { Vec3 } = require('vec3');
+
 class BuildingEngine {
   constructor(bot) {
     this.bot = bot;
@@ -28,7 +30,7 @@ class BuildingEngine {
       await this.bot.waitForTicks(5);
       const below = this.bot.blockAt(this.bot.entity.position.offset(0, -1, 0));
       if (below) {
-        await this.bot.placeBlock(below, { x: 0, y: 1, z: 0 }).catch(() => {});
+        await this.bot.placeBlock(below, new Vec3(0, 1, 0)).catch(() => {});
       }
       this.bot.setControlState('jump', false);
       await this.bot.waitForTicks(5);
@@ -58,7 +60,7 @@ class BuildingEngine {
       const targetPos = center.offset(dx, dy, dz);
       const refBlock = this.bot.blockAt(targetPos.offset(0, -1, 0));
       if (refBlock && refBlock.boundingBox === 'block') {
-        await this.bot.placeBlock(refBlock, { x: 0, y: 1, z: 0 }).catch(() => {});
+        await this.bot.placeBlock(refBlock, new Vec3(0, 1, 0)).catch(() => {});
       }
     }
     this.bot.chat(`[${this.bot.username}] Sığınak inşa edildi, güvendeyiz!`);

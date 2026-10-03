@@ -27,13 +27,17 @@ class SurvivalEngine {
 
   checkFire() {
     if (this.bot.entity && (this.bot.entity.isOnFire || this.bot.entity.isInLava)) {
-      this.bot.chat(`[${this.bot.username}] YANIYORUM! Su arıyorum!`);
-      // Find nearest water block within 12 blocks
+      const now = Date.now();
+      if (!this.lastFireAlert || now - this.lastFireAlert > 6000) {
+        this.lastFireAlert = now;
+        this.bot.chat(`[${this.bot.username}] 🔥 Yanıyorum! Suya koşuyorum!`);
+      }
+      // Find nearest water block within 16 blocks
       const water = this.bot.findBlock({
         matching: (b) => b && b.name === 'water',
-        maxDistance: 12
+        maxDistance: 16
       });
-      if (water && this.bot.pathfinder) {
+      if (water && water.position && this.bot.pathfinder) {
         this.bot.pathfinder.setGoal(new (require('mineflayer-pathfinder').goals.GoalBlock)(water.position.x, water.position.y, water.position.z));
       }
     }

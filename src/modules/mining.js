@@ -3,6 +3,7 @@
  * Vein mining, strip mining, torch placement, and ore detection.
  */
 const { goals } = require('mineflayer-pathfinder');
+const { Vec3 } = require('vec3');
 
 class MiningEngine {
   constructor(bot, config) {
@@ -42,7 +43,7 @@ class MiningEngine {
     const floor = this.bot.blockAt(pos.offset(0, -1, 0));
     if (floor && floor.boundingBox === 'block') {
       this.bot.equip(torch, 'hand').then(() => {
-        this.bot.placeBlock(floor, { x: 0, y: 1, z: 0 }).catch(() => {});
+        this.bot.placeBlock(floor, new Vec3(0, 1, 0)).catch(() => {});
       }).catch(() => {});
     }
   }

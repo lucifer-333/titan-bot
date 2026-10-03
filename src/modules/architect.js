@@ -6,6 +6,7 @@
  */
 
 const { goals } = require('mineflayer-pathfinder');
+const { Vec3 } = require('vec3');
 
 class ArchitectEngine {
   constructor(bot, config) {
@@ -189,22 +190,39 @@ class ArchitectEngine {
       }
 
       try {
-        await this.bot.pathfinder.goto(new goals.GoalNear(targetPos.x, targetPos.y, targetPos.z, 3.5));
+        // Step back if standing inside target position
+        if (this.bot.entity && this.bot.entity.position) {
+          const myPos = this.bot.entity.position.floored();
+          if (myPos.equals(targetPos) || myPos.offset(0, 1, 0).equals(targetPos)) {
+            await this.bot.pathfinder.goto(new goals.GoalNear(targetPos.x + 2, targetPos.y, targetPos.z + 2, 1)).catch(() => {});
+          }
+        }
+
+        await this.bot.pathfinder.goto(new goals.GoalNear(targetPos.x, targetPos.y, targetPos.z, 3.2)).catch(() => {});
 
         const adjacentOffsets = [
           [0, -1, 0, [0, 1, 0]],
           [1, 0, 0, [-1, 0, 0]],
           [-1, 0, 0, [1, 0, 0]],
           [0, 0, 1, [0, 0, -1]],
-          [0, 0, -1, [0, 0, 1]]
+          [0, 0, -1, [0, 0, 1]],
+          [0, 1, 0, [0, -1, 0]]
         ];
 
         for (const [dx, dy, dz, face] of adjacentOffsets) {
           const neighbor = this.bot.blockAt(targetPos.offset(dx, dy, dz));
           if (neighbor && neighbor.boundingBox === 'block') {
             await this.bot.equip(activeBlock, 'hand');
-            await this.bot.placeBlock(neighbor, { x: face[0], y: face[1], z: face[2] });
+            const faceVec = new Vec3(face[0], face[1], face[2]);
+            await this.bot.lookAt(neighbor.position.offset(0.5 + face[0] * 0.4, 0.5 + face[1] * 0.4, 0.5 + face[2] * 0.4), true).catch(() => {});
+            await this.bot.placeBlock(neighbor, faceVec).catch(() => {});
             placedCount++;
+
+            // Progress broadcast
+            const progress = Math.round((placedCount / blueprint.length) * 100);
+            if (progress === 25 || progress === 50 || progress === 75) {
+              this.bot.chat(`[${this.bot.username}] 🏗️ İnşaat ilerlemesi: %${progress} tamamlandı.`);
+            }
             break;
           }
         }

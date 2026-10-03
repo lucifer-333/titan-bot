@@ -60,16 +60,21 @@ const CONFIG = {
   scanRadius: 28
 };
 
-// Protodef paket uyarılarını yoksay
+// Protodef paket uyarılarını yoksay, diğer hataları detaylı logla
 process.on('uncaughtException', (err) => {
-  if (err.name === 'PartialReadError') return;
-  console.log('[!] Sistem logu:', err.message);
+  if (err.name === 'PartialReadError' || err.message?.includes('PartialReadError')) return;
+  console.log('[!] Sistem logu:', err.stack || err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  if (reason && (reason.name === 'PartialReadError' || reason.message?.includes('PartialReadError'))) return;
+  console.log('[!] Unhandled rejection:', reason?.stack || reason?.message || reason);
 });
 
 const activeBots = [];
 
 // En iyi alet kuşanma
 function equipBestTool(bot, type) {
+  if (!bot.inventory) return;
   const items = bot.inventory.items();
   const tools = items.filter(i => i.name.includes(type));
   if (tools.length === 0) return;
@@ -88,24 +93,29 @@ function equipBestTool(bot, type) {
   bot.equip(tools[0], 'hand').catch(() => {});
 }
 
-// Zırh ve Sol El Kalkan Kuşanma
+// Zırh ve Sol El Kalkan Kuşanma (Yalnızca boş slotları doldurur, paket spamı yapmaz)
 function equipGear(bot) {
+  if (!bot.inventory) return;
   const items = bot.inventory.items();
-  const armorSlots = {
-    helmet: ['helmet', 'cap'],
-    chestplate: ['chestplate', 'tunic'],
-    leggings: ['leggings', 'pants'],
-    boots: ['boots']
-  };
+  const armorSlots = [
+    { slot: 5, dest: 'head', keys: ['helmet', 'cap'] },
+    { slot: 6, dest: 'torso', keys: ['chestplate', 'tunic', 'elytra'] },
+    { slot: 7, dest: 'legs', keys: ['leggings', 'pants'] },
+    { slot: 8, dest: 'feet', keys: ['boots'] }
+  ];
 
-  for (const [slot, keys] of Object.entries(armorSlots)) {
-    const piece = items.find(i => keys.some(k => i.name.includes(k)));
-    if (piece) bot.equip(piece, slot).catch(() => {});
+  for (const { slot, dest, keys } of armorSlots) {
+    if (!bot.inventory.slots[slot]) {
+      const piece = items.find(i => keys.some(k => i.name.includes(k)));
+      if (piece) bot.equip(piece, dest).catch(() => {});
+    }
   }
 
-  const offhandItem = items.find(i => i.name.includes('totem') || i.name.includes('shield'));
-  if (offhandItem) {
-    bot.equip(offhandItem, 'off-hand').catch(() => {});
+  if (!bot.inventory.slots[45]) {
+    const offhandItem = items.find(i => i.name.includes('totem') || i.name.includes('shield'));
+    if (offhandItem) {
+      bot.equip(offhandItem, 'off-hand').catch(() => {});
+    }
   }
 }
 
@@ -291,11 +301,13 @@ function createBotInstance(id) {
     console.log(`[✓] ${username} AKTİF VE COLOSSUS v6.0 MODUNDA!`);
 
     const defaultMove = new Movements(bot);
-    defaultMove.canDig = false;
+    defaultMove.canDig = true;
+    defaultMove.dontDigNames = ['bedrock', 'barrier', 'command_block', 'chest', 'furnace', 'crafting_table', 'spawner', 'barrel', 'ender_chest'];
     defaultMove.allowParkour = true;
     defaultMove.allowSprinting = true;
     defaultMove.canOpenDoors = true;
     defaultMove.liquidCost = 25;
+    defaultMove.maxDropDown = 4;
     bot.pathfinder.setMovements(defaultMove);
 
     bot.autoEat.options = {
@@ -692,8 +704,10 @@ function createBotInstance(id) {
       return;
     }
 
-    // 28. Askeri Eskort & Koruma Formasyonu
-    if (cmd.includes('koru') || cmd.includes('bana gel') || cmd.includes('eşlik')) {
+    // 28. Askeri Eskort & Takip & Koruma Formasyonu
+    if (cmd.includes('takip') || cmd.includes('yanıma gel') || cmd.includes('buraya gel') || 
+        cmd.includes('bana gel') || cmd.includes('gel') || cmd.includes('koru') || 
+        cmd.includes('eşlik') || cmd.includes('peşimden')) {
       currentTask = 'guard';
       formation.startEscort();
       return;
@@ -750,8 +764,9 @@ function createBotInstance(id) {
       return;
     }
 
-    // 33. Dur / Bekle
-    if (cmd.includes('dur') || cmd.includes('stop') || cmd.includes('bekle')) {
+    // 33. Dur / Bekle / İptal Et
+    if (cmd.includes('dur') || cmd.includes('stop') || cmd.includes('bekle') || 
+        cmd.includes('durun') || cmd.includes('iptal') || cmd.includes('bırak') || cmd.includes('sakin')) {
       currentTask = 'idle';
       combat.stopCombat();
       farming.stop();
@@ -762,7 +777,10 @@ function createBotInstance(id) {
       bot.pathfinder.setGoal(null);
       bot.setControlState('jump', false);
       bot.setControlState('sneak', false);
-      bot.chat(`[${username}] Tüm görevler iptal edildi, hazırda bekliyorum reis.`);
+      bot.setControlState('sprint', false);
+      bot.setControlState('forward', false);
+      bot.setControlState('back', false);
+      bot.chat(`[${username}] Tüm eylemler durduruldu, hazırda bekliyorum reis.`);
       return;
     }
 

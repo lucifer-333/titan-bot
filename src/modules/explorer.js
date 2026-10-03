@@ -40,7 +40,8 @@ class ExplorerEngine {
     });
 
     const nearbyVillager = Object.values(this.bot.entities).find(e => 
-      e.name === 'villager' && this.bot.entity.position.distanceTo(e.position) <= 32
+      e && e.name === 'villager' && e.position && this.bot.entity && this.bot.entity.position && 
+      this.bot.entity.position.distanceTo(e.position) <= 32
     );
 
     if ((villageBlock || nearbyVillager) && !this.pointsOfInterest.has('köy')) {
@@ -52,14 +53,14 @@ class ExplorerEngine {
     // 2. Cave & Ravine Mouth Detection (Dark underground drops with air)
     const caveAirBlock = this.bot.findBlock({
       matching: (b) => {
-        if (!b) return false;
+        if (!b || !b.position) return false;
         // Deep drops below surface with low light
-        return b.name === 'cave_air' || (b.name === 'air' && b.position.y < 50 && b.light <= 3);
+        return b.name === 'cave_air' || (b.name === 'air' && typeof b.position.y === 'number' && b.position.y < 50 && b.light <= 3);
       },
       maxDistance: 24
     });
 
-    if (caveAirBlock && !this.pointsOfInterest.has('mağara')) {
+    if (caveAirBlock && caveAirBlock.position && !this.pointsOfInterest.has('mağara')) {
       const pos = caveAirBlock.position;
       this.pointsOfInterest.set('mağara', { type: 'Mağara Girişi', pos, timestamp: Date.now() });
       this.bot.chat(`[${this.bot.username}] 🕳️ Mağara/Maden yarığı tespit edildi: [${pos.x}, ${pos.y}, ${pos.z}]`);
@@ -71,7 +72,7 @@ class ExplorerEngine {
       maxDistance: 28
     });
 
-    if (portalBlock && !this.pointsOfInterest.has('portal')) {
+    if (portalBlock && portalBlock.position && !this.pointsOfInterest.has('portal')) {
       const pos = portalBlock.position;
       this.pointsOfInterest.set('portal', { type: 'Portal / Kadim Yapı', pos, timestamp: Date.now() });
       this.bot.chat(`[${this.bot.username}] 🔮 Gizemli portal kalıntısı bulundu! Konum: [${pos.x}, ${pos.y}, ${pos.z}]`);
